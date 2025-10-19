@@ -116,6 +116,9 @@ function Documents({ username, onLogout }) {
         <h1>🏥 MedLM Health Assistant</h1>
         <div className="header-actions">
           <span>Welcome, {username}!</span>
+          <button className="btn btn-secondary" onClick={() => navigate('/wearables')}>
+            Wearables
+          </button>
           <button className="btn btn-secondary" onClick={() => navigate('/chat')}>
             Chat
           </button>

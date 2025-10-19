@@ -8,6 +8,8 @@ import Chat from './components/Chat';
 import Profile from './components/Profile';
 import Documents from './components/Documents';
 import Followups from './components/Followups';
+import Wearables from './components/Wearables';
+import Wearables from './components/Wearables';
 
 // Configure axios defaults
 axios.defaults.baseURL = 'http://localhost:5000';
@@ -100,6 +102,22 @@ function App() {
             element={
               authenticated ? 
                 <Documents username={username} onLogout={handleLogout} /> : 
+                <Navigate to="/login" />
+            } 
+          />
+          <Route 
+            path="/wearables" 
+            element={
+              authenticated ? 
+                <Wearables username={username} onLogout={handleLogout} /> : 
+                <Navigate to="/login" />
+            } 
+          />
+          <Route 
+            path="/wearables" 
+            element={
+              authenticated ? 
+                <Wearables username={username} onLogout={handleLogout} /> : 
                 <Navigate to="/login" />
             } 
           />
