@@ -1,40 +1,64 @@
-# 🏥 Personalized AI Health Chatbot with Google MedLM
+# 🏥 AI Personalized Health Chatbot with Wearable Integration
 
-A sophisticated health chatbot application powered by Google's Gemini API (MedLM) that provides personalized health advice based on user profiles.
+A comprehensive AI-powered health chatbot application that integrates with wearable devices to provide personalized health insights and recommendations. Built with Google's Gemini API and supporting multiple fitness trackers.
 
 ## ✨ Features
 
-- **🤖 AI-Powered Health Assistant**: Leverages Google's Gemini API for intelligent health conversations
-- **👤 Personalized Responses**: Uses user profile data (age, medical history, allergies, medications) to provide tailored advice
-- **🔐 Secure Authentication**: User registration and login with session management
-- **💬 Chat History**: Persistent conversation history saved to database
-- **📊 Health Profile Management**: Comprehensive user profile system for personalization
-- **📁 Document Upload & Analysis**: Upload medical documents (PDFs, images, reports) and get AI-powered analysis using Gemini Vision
-- **⏰ Regular Follow-ups**: Schedule and track regular health check-ins (daily, weekly, biweekly, monthly) with AI-generated feedback
-- **🎨 Modern UI**: Beautiful, responsive React interface with gradient design
-- **📱 Responsive Design**: Works seamlessly on desktop and mobile devices
+### 🤖 AI Health Assistant
+- **Intelligent Conversations**: Powered by Google's Gemini API for medical-focused responses
+- **Personalized Advice**: Tailored recommendations based on user profiles and wearable data
+- **Health Insights**: AI-generated insights from your activity, sleep, and health patterns
+- **Real-time Analysis**: Instant analysis of health trends and patterns
+
+### ⌚ Wearable Device Integration
+- **Fitbit Integration**: Connect your Fitbit device for automatic data sync
+- **Multiple Device Support**: Framework for Garmin, Apple Health, and other devices
+- **Automatic Data Sync**: Real-time synchronization of activity, sleep, and health metrics
+- **Manual Data Entry**: Option to manually input health data if no wearable device
+
+### 📊 Advanced Health Analytics
+- **Comprehensive Dashboard**: Visual overview of your health metrics and trends
+- **Health Score**: AI-calculated overall health score based on multiple factors
+- **Trend Analysis**: Interactive charts showing activity, sleep, and health patterns
+- **Goal Tracking**: Monitor progress towards your health and fitness goals
+
+### 🔐 Security & Privacy
+- **Secure Authentication**: User registration and login with session management
+- **Data Encryption**: All health data is securely stored and encrypted
+- **Privacy Controls**: Full control over data sharing and device connections
+- **HIPAA Considerations**: Built with healthcare privacy standards in mind
+
+### 📱 Modern Interface
+- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
+- **Intuitive Navigation**: Easy-to-use interface with clear navigation
+- **Real-time Updates**: Live data synchronization and instant feedback
+- **Beautiful Visualizations**: Interactive charts and health metrics display
 
 ## 🏗️ Architecture
 
 ### Backend (Flask)
-- RESTful API with Flask
-- SQLite database for user data and chat history
-- Google Generative AI integration (Gemini Pro)
-- Session-based authentication
-- CORS support for cross-origin requests
+- **RESTful API**: Comprehensive Flask-based API with health-focused endpoints
+- **Database**: SQLite with tables for users, health metrics, wearable devices, and analytics
+- **AI Integration**: Google Gemini API for intelligent health conversations and insights
+- **Wearable APIs**: OAuth integration with Fitbit, Garmin, and Apple Health
+- **Health Analytics**: Advanced data processing and trend analysis
+- **Security**: Session-based authentication with secure token management
 
 ### Frontend (React)
-- Modern React 18 with functional components
-- React Router for navigation
-- Axios for API communication
-- Beautiful gradient UI with animations
-- Real-time chat interface
+- **Modern React 18**: Functional components with hooks for state management
+- **Multi-page Application**: React Router with dedicated pages for different features
+- **Real-time Updates**: Live data synchronization with backend APIs
+- **Interactive Charts**: Health data visualizations and trend analysis
+- **Responsive Design**: Mobile-first design with beautiful gradient UI
+- **OAuth Flows**: Seamless wearable device connection process
 
 ## 📋 Prerequisites
 
-- Python 3.11+
-- Node.js 18+
-- Google API Key (for Gemini API access)
+- **Python 3.11+**: For backend development
+- **Node.js 18+**: For frontend development
+- **Google API Key**: For Gemini API access ([Get one here](https://makersuite.google.com/app/apikey))
+- **Fitbit Developer Account**: For Fitbit integration (optional)
+- **Wearable Device**: Fitbit, Garmin, or Apple Watch (optional - manual entry available)
 
 ## 🚀 Getting Started
 
@@ -71,15 +95,29 @@ cd frontend
 npm install
 ```
 
-### 4. Get Google API Key
+### 4. Configure API Keys
 
+#### Google API Key (Required)
 1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
 2. Create a new API key
-3. Add it to `backend/.env`:
+3. Add it to `backend/.env`
 
-```
-GOOGLE_API_KEY=your_api_key_here
+#### Fitbit Integration (Optional)
+1. Create a Fitbit developer account at [dev.fitbit.com](https://dev.fitbit.com)
+2. Register a new application
+3. Set redirect URI to `http://localhost:3000/wearables/callback`
+4. Add credentials to `backend/.env`
+
+#### Environment Configuration
+```bash
+# Copy example environment file
+cp backend/.env.example backend/.env
+
+# Edit with your API keys
+GOOGLE_API_KEY=your_google_api_key_here
 SECRET_KEY=your_secret_key_here
+FITBIT_CLIENT_ID=your_fitbit_client_id
+FITBIT_CLIENT_SECRET=your_fitbit_client_secret
 ```
 
 ### 5. Run the Application
@@ -114,45 +152,38 @@ docker-compose up --build
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:5000
 
-## 📱 Usage
+## 📱 Usage Guide
 
-### 1. Register/Login
-- Create a new account or sign in with existing credentials
-- Secure password hashing with bcrypt
+### 1. Getting Started
+- **Register/Login**: Create a new account with secure authentication
+- **Profile Setup**: Complete your health profile for personalized recommendations
+- **Device Connection**: Connect your wearable devices or use manual data entry
 
-### 2. Set Up Your Health Profile
-- Navigate to the Profile page
-- Fill in your health information:
-  - Personal details (name, age, gender)
-  - Medical history
-  - Allergies
-  - Current medications
-  - Health goals
-- This information personalizes the AI's responses
+### 2. Connect Wearable Devices
+- **Navigate to Wearables**: Go to the Wearables page
+- **Choose Your Device**: Currently supports Fitbit (more coming soon)
+- **OAuth Connection**: Securely connect through official device APIs
+- **Automatic Sync**: Data syncs automatically in the background
+- **Manual Entry**: Alternative option for users without wearable devices
 
-### 3. Chat with the AI
-- Ask health-related questions
-- Get personalized advice based on your profile
-- View chat history
-- All conversations are saved
+### 3. Health Analytics Dashboard
+- **Health Score**: AI-calculated overall health score (0-100)
+- **Activity Metrics**: Steps, calories, distance, and active minutes
+- **Sleep Analysis**: Sleep duration, efficiency, and quality patterns
+- **Trend Visualization**: Interactive charts showing progress over time
+- **AI Insights**: Personalized recommendations based on your data
 
-### 4. Upload Medical Documents
-- Navigate to the Documents page
-- Upload lab results, prescriptions, medical reports
-- Supported formats: PDF, PNG, JPG, TXT, DOC, DOCX
-- Click "Analyze with AI" to get instant insights using Gemini Vision
-- AI can extract text, interpret charts, and highlight key findings
+### 4. AI Health Assistant
+- **Smart Conversations**: Chat with AI that understands your health context
+- **Wearable Data Integration**: AI considers your recent activity and sleep data
+- **Personalized Advice**: Recommendations based on your profile and metrics
+- **Health Goals**: Track progress and get motivation from AI
 
-### 5. Set Up Regular Follow-ups
-- Go to the Follow-ups page
-- Create check-ins for:
-  - Medication reminders
-  - Symptom tracking
-  - Exercise goals
-  - Health monitoring
-- Choose frequency (daily, weekly, biweekly, monthly)
-- Complete check-ins and receive AI-generated encouragement and advice
-- Track your consistency over time
+### 5. Advanced Features
+- **Document Analysis**: Upload and analyze medical documents with AI
+- **Follow-up Reminders**: Schedule regular health check-ins
+- **Trend Analysis**: Identify patterns in your health data
+- **Goal Setting**: Set and track personalized health objectives
 
 ## 🔒 Security Features
 
@@ -170,83 +201,67 @@ docker-compose up --build
 - `POST /api/auth/logout` - User logout
 - `GET /api/auth/status` - Check authentication status
 
-### Profile
+### Profile Management
 - `GET /api/profile` - Get user profile
 - `PUT /api/profile` - Update user profile
 
-### Chat
-- `POST /api/chat` - Send message and get AI response
+### AI Chat System
+- `POST /api/chat` - Send message and get AI response (includes wearable data context)
 - `GET /api/chat/history` - Get chat history
 
-### Documents
+### Wearable Device Integration
+- `GET /api/wearables/devices` - Get connected wearable devices
+- `GET /api/wearables/connect/fitbit` - Initiate Fitbit OAuth flow
+- `POST /api/wearables/callback/fitbit` - Handle Fitbit OAuth callback
+- `POST /api/wearables/sync/<device_id>` - Manually sync device data
+- `DELETE /api/wearables/disconnect/<device_id>` - Disconnect wearable device
+
+### Health Analytics
+- `GET /api/analytics/dashboard` - Get comprehensive health dashboard data
+- `GET /api/analytics/insights` - Get AI-powered health insights
+- `GET /api/analytics/trends` - Get health trend analysis with visualizations
+- `POST /api/health/manual-entry` - Add manual health data entry
+
+### Document Analysis
 - `POST /api/files/upload` - Upload medical document
 - `GET /api/files` - Get list of uploaded files
 - `DELETE /api/files/<file_id>` - Delete a file
 - `POST /api/files/analyze/<file_id>` - Analyze document with AI
 
-### Follow-ups
+### Follow-up System
 - `POST /api/followups` - Create new follow-up schedule
 - `GET /api/followups` - Get all active follow-ups
 - `POST /api/followups/<id>/complete` - Mark follow-up as complete
 - `DELETE /api/followups/<id>` - Delete a follow-up
 - `GET /api/followups/<id>/history` - Get completion history
 
-### Health Check
+### System Health
 - `GET /api/health` - Service health check
 
 ## 📊 Database Schema
 
-### Users Table
-- id (Primary Key)
-- username (Unique)
-- password_hash
-- created_at
+### Core User Tables
+- **Users**: User authentication and basic info
+- **User Profiles**: Comprehensive health profiles for personalization
+- **Chat History**: AI conversation history with health context
 
-### User Profiles Table
-- user_id (Foreign Key)
-- full_name
-- age
-- gender
-- medical_history
-- allergies
-- current_medications
-- health_goals
-- updated_at
+### Wearable Device Tables
+- **Wearable Devices**: Connected device information and OAuth tokens
+- **Health Metrics**: General health metrics from various sources
+- **Activity Data**: Daily activity data (steps, calories, distance, etc.)
+- **Sleep Data**: Sleep patterns, duration, and quality metrics
 
-### Chat History Table
-- id (Primary Key)
-- user_id (Foreign Key)
-- message
-- response
-- timestamp
+### Health Management Tables
+- **Uploaded Files**: Medical documents and analysis results
+- **Follow-ups**: Scheduled health check-ins and reminders
+- **Follow-up History**: Completion history and AI responses
 
-### Uploaded Files Table
-- id (Primary Key)
-- user_id (Foreign Key)
-- filename
-- original_filename
-- file_type
-- file_size
-- description
-- upload_date
-
-### Follow-ups Table
-- id (Primary Key)
-- user_id (Foreign Key)
-- title
-- frequency (daily, weekly, biweekly, monthly)
-- next_date
-- last_completed
-- notes
-- is_active
-- created_at
-
-### Follow-up History Table
-- id (Primary Key)
-- followup_id (Foreign Key)
-- completed_date
-- notes
-- ai_response
+### Key Features
+- **Relational Design**: Proper foreign key relationships for data integrity
+- **Flexible Metrics**: Support for various health data types and units
+- **Device Agnostic**: Schema supports multiple wearable device types
+- **Temporal Data**: Time-series data for trend analysis and insights
+- **Privacy Focused**: Secure storage with proper access controls
 
 ## 🎨 UI Features
 
@@ -285,16 +300,23 @@ Always consult with qualified healthcare providers for medical decisions.
 ## 📦 Dependencies
 
 ### Backend
-- Flask 3.0.0
-- flask-cors 4.0.0
-- flask-session 0.5.0
-- google-generativeai 0.3.2
-- werkzeug 3.0.1
+- **Flask 3.0.0**: Web framework
+- **flask-cors 4.0.0**: Cross-origin resource sharing
+- **flask-session 0.5.0**: Session management
+- **google-generativeai 0.3.2**: AI integration
+- **requests 2.31.0**: HTTP client for API calls
+- **pandas 2.0.3**: Data analysis and processing
+- **numpy 1.24.3**: Numerical computing
+- **plotly 5.17.0**: Data visualization
+- **fitbit 0.3.1**: Fitbit API integration
+- **requests-oauthlib 1.3.1**: OAuth authentication
 
 ### Frontend
-- React 18.2.0
-- react-router-dom 6.20.0
-- axios 1.6.2
+- **React 18.2.0**: UI framework
+- **react-router-dom 6.20.0**: Client-side routing
+- **axios 1.6.2**: HTTP client
+- **chart.js 4.4.0**: Chart library
+- **react-chartjs-2 5.2.0**: React Chart.js wrapper
 
 ## 🤝 Contributing
 

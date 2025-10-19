@@ -91,24 +91,23 @@ function Chat({ username, onLogout }) {
 
   return (
     <div className="chat-container">
-      <div className="header">
-        <h1>🏥 MedLM Health Assistant</h1>
-        <div className="header-actions">
-          <span>Welcome, {username}!</span>
-          <button className="btn btn-secondary" onClick={() => navigate('/documents')}>
-            Documents
-          </button>
-          <button className="btn btn-secondary" onClick={() => navigate('/followups')}>
-            Follow-ups
-          </button>
-          <button className="btn btn-secondary" onClick={() => navigate('/profile')}>
-            Profile
-          </button>
-          <button className="btn btn-secondary" onClick={onLogout}>
-            Logout
-          </button>
+      <nav className="navbar">
+        <div className="nav-brand">
+          <h1>🏥 Health Chatbot</h1>
         </div>
-      </div>
+        <div className="nav-menu">
+          <a href="/chat" className="nav-link active">💬 Chat</a>
+          <a href="/profile" className="nav-link">👤 Profile</a>
+          <a href="/documents" className="nav-link">📄 Documents</a>
+          <a href="/followups" className="nav-link">⏰ Follow-ups</a>
+          <a href="/wearables" className="nav-link">⌚ Wearables</a>
+          <a href="/analytics" className="nav-link">📊 Analytics</a>
+          <div className="nav-user">
+            <span>👋 {username}</span>
+            <button onClick={onLogout} className="logout-btn">Logout</button>
+          </div>
+        </div>
+      </nav>
 
       <div className="chat-main">
         <div className="chat-messages">
