@@ -97,6 +97,22 @@ def init_db():
                   notes TEXT,
                   ai_response TEXT,
                   FOREIGN KEY (followup_id) REFERENCES followups(id))''')
+
+    # Wearable metrics table
+    # This table stores normalized, user-submitted wearable metrics (aggregated or point-in-time)
+    # Common metric_type values: steps, sleep_minutes, resting_hr, calories, weight_kg
+    c.execute('''CREATE TABLE IF NOT EXISTS wearable_metrics
+                 (id TEXT PRIMARY KEY,
+                  user_id TEXT NOT NULL,
+                  metric_type TEXT NOT NULL,
+                  value REAL NOT NULL,
+                  unit TEXT,
+                  start_time TEXT,
+                  end_time TEXT,
+                  source TEXT,
+                  metadata TEXT,
+                  created_at TEXT NOT NULL,
+                  FOREIGN KEY (user_id) REFERENCES users(id))''')
     
     conn.commit()
     conn.close()
@@ -250,7 +266,93 @@ def get_user_context(user_id):
     if profile['health_goals']:
         context += f"Health Goals: {profile['health_goals']}\n"
     
+    # Append summarized wearable data to the context (last 7 days)
+    wearable_context = get_wearable_context(user_id, days=7)
+    if wearable_context:
+        context += "\nRecent Wearable Summary (last 7 days):\n" + wearable_context
+
     return context
+
+def get_wearable_context(user_id: str, days: int = 7) -> str:
+    summary = compute_wearable_summary(user_id, days)
+    if not summary:
+        return ""
+
+    def fmt(value, decimals=0):
+        try:
+            return f"{float(value):.{decimals}f}"
+        except Exception:
+            return str(value)
+
+    parts = []
+    if 'steps' in summary:
+        parts.append(f"Avg steps/day: {fmt(summary['steps'].get('avg_daily', summary['steps'].get('avg')), 0)}")
+    if 'sleep_minutes' in summary:
+        avg_sleep_hours = (summary['sleep_minutes'].get('avg_daily', summary['sleep_minutes'].get('avg')) or 0) / 60.0
+        parts.append(f"Avg sleep: {fmt(avg_sleep_hours, 1)} h/night")
+    if 'resting_hr' in summary:
+        parts.append(f"Avg resting HR: {fmt(summary['resting_hr'].get('avg'), 0)} bpm")
+    if 'calories' in summary:
+        parts.append(f"Avg calories/day: {fmt(summary['calories'].get('avg_daily', summary['calories'].get('avg')), 0)} kcal")
+    if 'weight_kg' in summary:
+        parts.append(f"Avg weight: {fmt(summary['weight_kg'].get('avg'), 1)} kg")
+
+    return "; ".join(parts)
+
+def compute_wearable_summary(user_id: str, days: int = 7):
+    """Compute simple summary stats for each metric over the past N days.
+    Expects one entry per day per metric for accurate daily averages, but also
+    works with multiple entries by averaging values.
+    """
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        since = (datetime.now() - timedelta(days=days)).isoformat()
+        c.execute('''
+            SELECT metric_type,
+                   COUNT(*) as n,
+                   AVG(value) as avg_value,
+                   MIN(value) as min_value,
+                   MAX(value) as max_value
+            FROM wearable_metrics
+            WHERE user_id = ? AND (start_time IS NOT NULL AND start_time >= ? OR created_at >= ?)
+            GROUP BY metric_type
+        ''', (user_id, since, since))
+        rows = c.fetchall()
+
+        summary = {}
+        for r in rows:
+            metric = r['metric_type']
+            summary[metric] = {
+                'count': r['n'],
+                'avg': r['avg_value'],
+                'min': r['min_value'],
+                'max': r['max_value']
+            }
+
+        # Attempt daily average using distinct date(start_time) counts when possible
+        c.execute('''
+            SELECT metric_type, DATE(COALESCE(start_time, created_at)) as d, SUM(value) as total_value
+            FROM wearable_metrics
+            WHERE user_id = ? AND (start_time IS NOT NULL AND start_time >= ? OR created_at >= ?)
+            GROUP BY metric_type, DATE(COALESCE(start_time, created_at))
+        ''', (user_id, since, since))
+        per_day = {}
+        for r in c.fetchall():
+            metric = r['metric_type']
+            per_day.setdefault(metric, {'days': 0, 'sum': 0.0})
+            per_day[metric]['days'] += 1
+            per_day[metric]['sum'] += r['total_value'] if r['total_value'] is not None else 0.0
+        for metric, agg in per_day.items():
+            if metric not in summary:
+                summary[metric] = {}
+            if agg['days'] > 0:
+                summary[metric]['avg_daily'] = agg['sum'] / agg['days']
+
+        conn.close()
+        return summary
+    except Exception:
+        return {}
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -264,7 +366,7 @@ def chat():
         return jsonify({'error': 'Message is required'}), 400
     
     try:
-        # Get user context for personalization
+        # Get user context for personalization (profile + recent wearables)
         user_context = get_user_context(session['user_id'])
         
         # Configure the model for medical/health conversations
@@ -309,6 +411,156 @@ Important guidelines:
         
     except Exception as e:
         return jsonify({'error': f'Error generating response: {str(e)}'}), 500
+
+# Wearables endpoints
+@app.route('/api/wearables/ingest', methods=['POST'])
+def ingest_wearables():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json(silent=True) or {}
+    metrics = data.get('metrics')
+    if not metrics or not isinstance(metrics, list):
+        return jsonify({'error': 'metrics must be a non-empty list'}), 400
+
+    conn = get_db()
+    c = conn.cursor()
+
+    inserted = 0
+    now_iso = datetime.now().isoformat()
+    for m in metrics:
+        metric_type = (m.get('metric_type') or '').strip()
+        value = m.get('value')
+        if not metric_type or value is None:
+            continue
+        unit = m.get('unit')
+        start_time = m.get('start_time') or m.get('timestamp') or now_iso
+        end_time = m.get('end_time') or start_time
+        source = m.get('source')
+        metadata = m.get('metadata')
+        try:
+            metadata_str = json.dumps(metadata) if isinstance(metadata, (dict, list)) else (metadata or None)
+        except Exception:
+            metadata_str = None
+        rec_id = str(uuid.uuid4())
+        c.execute('''INSERT INTO wearable_metrics
+                     (id, user_id, metric_type, value, unit, start_time, end_time, source, metadata, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                  (rec_id, session['user_id'], metric_type, float(value), unit, start_time, end_time, source, metadata_str, now_iso))
+        inserted += 1
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Metrics ingested', 'inserted': inserted}), 201
+
+@app.route('/api/wearables/summary', methods=['GET'])
+def get_wearables_summary():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    try:
+        days = int(request.args.get('days', '7'))
+    except Exception:
+        days = 7
+    summary = compute_wearable_summary(session['user_id'], days)
+    return jsonify({'summary': summary, 'days': days}), 200
+
+@app.route('/api/wearables/metrics', methods=['GET'])
+def query_wearables_metrics():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    metric = request.args.get('metric')
+    start = request.args.get('start')
+    end = request.args.get('end')
+    try:
+        limit = int(request.args.get('limit')) if request.args.get('limit') else None
+    except Exception:
+        limit = None
+
+    if not start and not end and not limit:
+        # Default to last 7 days if no filters given
+        start = (datetime.now() - timedelta(days=7)).isoformat()
+
+    conn = get_db()
+    c = conn.cursor()
+    query = 'SELECT id, metric_type, value, unit, start_time, end_time, source, metadata, created_at FROM wearable_metrics WHERE user_id = ?'
+    params = [session['user_id']]
+    if metric:
+        query += ' AND metric_type = ?'
+        params.append(metric)
+    if start:
+        query += ' AND (start_time IS NOT NULL AND start_time >= ? OR created_at >= ?)'
+        params.extend([start, start])
+    if end:
+        query += ' AND (end_time IS NOT NULL AND end_time <= ? OR created_at <= ?)'
+        params.extend([end, end])
+    query += ' ORDER BY COALESCE(start_time, created_at) DESC'
+    if limit:
+        query += ' LIMIT ?'
+        params.append(limit)
+
+    c.execute(query, tuple(params))
+    rows = c.fetchall()
+    conn.close()
+
+    def parse_metadata(m):
+        try:
+            return json.loads(m) if m else None
+        except Exception:
+            return None
+
+    return jsonify({'metrics': [
+        {
+            'id': r['id'],
+            'metric_type': r['metric_type'],
+            'value': r['value'],
+            'unit': r['unit'],
+            'start_time': r['start_time'],
+            'end_time': r['end_time'],
+            'source': r['source'],
+            'metadata': parse_metadata(r['metadata']),
+            'created_at': r['created_at']
+        } for r in rows
+    ]}), 200
+
+@app.route('/api/wearables/recent', methods=['GET'])
+def get_wearables_recent():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    try:
+        limit = int(request.args.get('limit', '20'))
+    except Exception:
+        limit = 20
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''SELECT id, metric_type, value, unit, start_time, end_time, source, metadata, created_at
+                 FROM wearable_metrics
+                 WHERE user_id = ?
+                 ORDER BY COALESCE(start_time, created_at) DESC
+                 LIMIT ?''', (session['user_id'], limit))
+    rows = c.fetchall()
+    conn.close()
+
+    def parse_metadata(m):
+        try:
+            return json.loads(m) if m else None
+        except Exception:
+            return None
+
+    return jsonify({'metrics': [
+        {
+            'id': r['id'],
+            'metric_type': r['metric_type'],
+            'value': r['value'],
+            'unit': r['unit'],
+            'start_time': r['start_time'],
+            'end_time': r['end_time'],
+            'source': r['source'],
+            'metadata': parse_metadata(r['metadata']),
+            'created_at': r['created_at']
+        } for r in rows
+    ]}), 200
 
 @app.route('/api/chat/history', methods=['GET'])
 def get_chat_history():

@@ -75,6 +75,9 @@ function Profile({ username, onLogout }) {
           <button className="btn btn-secondary" onClick={() => navigate('/followups')}>
             Follow-ups
           </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/wearables')}>
+            Wearables
+          </button>
           <button className="btn btn-secondary" onClick={onLogout}>
             Logout
           </button>
