@@ -52,10 +52,11 @@
 
 - **app.py**: 
   - Main Flask application
-  - API endpoints for auth, profile, and chat
-  - Google Gemini AI integration
+  - API endpoints for auth, profile, chat, documents, and follow-ups
+  - Google Gemini AI integration (text and vision)
   - Database initialization and management
   - Session handling
+  - File upload management
 
 - **requirements.txt**: Python package dependencies
   - Flask and extensions
@@ -111,6 +112,18 @@
   - Health information form
   - Profile updates
   - Personalization settings
+
+- **Documents.js**: File upload and management
+  - Multi-format file upload
+  - Document list with metadata
+  - AI-powered analysis
+  - File deletion
+
+- **Followups.js**: Regular check-in scheduler
+  - Create follow-up schedules
+  - Complete check-ins
+  - View upcoming and overdue items
+  - AI-generated feedback
 
 ## File Sizes (Approximate)
 
@@ -192,6 +205,7 @@ backend/
 ├── venv/                 # Python virtual environment
 ├── __pycache__/          # Python bytecode
 ├── flask_session/        # Session files
+├── uploads/              # Uploaded medical documents
 └── health_chatbot.db     # Database file
 
 frontend/

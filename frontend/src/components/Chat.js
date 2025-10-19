@@ -95,6 +95,12 @@ function Chat({ username, onLogout }) {
         <h1>🏥 MedLM Health Assistant</h1>
         <div className="header-actions">
           <span>Welcome, {username}!</span>
+          <button className="btn btn-secondary" onClick={() => navigate('/documents')}>
+            Documents
+          </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/followups')}>
+            Follow-ups
+          </button>
           <button className="btn btn-secondary" onClick={() => navigate('/profile')}>
             Profile
           </button>

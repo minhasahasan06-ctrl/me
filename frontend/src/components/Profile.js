@@ -69,6 +69,12 @@ function Profile({ username, onLogout }) {
           <button className="btn btn-secondary" onClick={() => navigate('/chat')}>
             Chat
           </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/documents')}>
+            Documents
+          </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/followups')}>
+            Follow-ups
+          </button>
           <button className="btn btn-secondary" onClick={onLogout}>
             Logout
           </button>

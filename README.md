@@ -9,6 +9,8 @@ A sophisticated health chatbot application powered by Google's Gemini API (MedLM
 - **🔐 Secure Authentication**: User registration and login with session management
 - **💬 Chat History**: Persistent conversation history saved to database
 - **📊 Health Profile Management**: Comprehensive user profile system for personalization
+- **📁 Document Upload & Analysis**: Upload medical documents (PDFs, images, reports) and get AI-powered analysis using Gemini Vision
+- **⏰ Regular Follow-ups**: Schedule and track regular health check-ins (daily, weekly, biweekly, monthly) with AI-generated feedback
 - **🎨 Modern UI**: Beautiful, responsive React interface with gradient design
 - **📱 Responsive Design**: Works seamlessly on desktop and mobile devices
 
@@ -134,6 +136,24 @@ docker-compose up --build
 - View chat history
 - All conversations are saved
 
+### 4. Upload Medical Documents
+- Navigate to the Documents page
+- Upload lab results, prescriptions, medical reports
+- Supported formats: PDF, PNG, JPG, TXT, DOC, DOCX
+- Click "Analyze with AI" to get instant insights using Gemini Vision
+- AI can extract text, interpret charts, and highlight key findings
+
+### 5. Set Up Regular Follow-ups
+- Go to the Follow-ups page
+- Create check-ins for:
+  - Medication reminders
+  - Symptom tracking
+  - Exercise goals
+  - Health monitoring
+- Choose frequency (daily, weekly, biweekly, monthly)
+- Complete check-ins and receive AI-generated encouragement and advice
+- Track your consistency over time
+
 ## 🔒 Security Features
 
 - Password hashing with werkzeug
@@ -157,6 +177,19 @@ docker-compose up --build
 ### Chat
 - `POST /api/chat` - Send message and get AI response
 - `GET /api/chat/history` - Get chat history
+
+### Documents
+- `POST /api/files/upload` - Upload medical document
+- `GET /api/files` - Get list of uploaded files
+- `DELETE /api/files/<file_id>` - Delete a file
+- `POST /api/files/analyze/<file_id>` - Analyze document with AI
+
+### Follow-ups
+- `POST /api/followups` - Create new follow-up schedule
+- `GET /api/followups` - Get all active follow-ups
+- `POST /api/followups/<id>/complete` - Mark follow-up as complete
+- `DELETE /api/followups/<id>` - Delete a follow-up
+- `GET /api/followups/<id>/history` - Get completion history
 
 ### Health Check
 - `GET /api/health` - Service health check
@@ -187,14 +220,46 @@ docker-compose up --build
 - response
 - timestamp
 
+### Uploaded Files Table
+- id (Primary Key)
+- user_id (Foreign Key)
+- filename
+- original_filename
+- file_type
+- file_size
+- description
+- upload_date
+
+### Follow-ups Table
+- id (Primary Key)
+- user_id (Foreign Key)
+- title
+- frequency (daily, weekly, biweekly, monthly)
+- next_date
+- last_completed
+- notes
+- is_active
+- created_at
+
+### Follow-up History Table
+- id (Primary Key)
+- followup_id (Foreign Key)
+- completed_date
+- notes
+- ai_response
+
 ## 🎨 UI Features
 
 - **Gradient Background**: Beautiful purple gradient design
-- **Smooth Animations**: Fade-in effects for messages
+- **Smooth Animations**: Fade-in effects for messages and cards
 - **Responsive Layout**: Mobile-friendly design
 - **Real-time Updates**: Instant message display
 - **Loading States**: Visual feedback for async operations
 - **Error Handling**: User-friendly error messages
+- **File Upload Interface**: Drag-and-drop support and file previews
+- **Modal Dialogs**: For document analysis and follow-up completion
+- **Visual Badges**: Frequency indicators and overdue alerts
+- **Interactive Cards**: Hover effects and smooth transitions
 
 ## ⚠️ Important Disclaimers
 

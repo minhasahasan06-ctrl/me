@@ -6,6 +6,8 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Chat from './components/Chat';
 import Profile from './components/Profile';
+import Documents from './components/Documents';
+import Followups from './components/Followups';
 
 // Configure axios defaults
 axios.defaults.baseURL = 'http://localhost:5000';
@@ -90,6 +92,22 @@ function App() {
             element={
               authenticated ? 
                 <Profile username={username} onLogout={handleLogout} /> : 
+                <Navigate to="/login" />
+            } 
+          />
+          <Route 
+            path="/documents" 
+            element={
+              authenticated ? 
+                <Documents username={username} onLogout={handleLogout} /> : 
+                <Navigate to="/login" />
+            } 
+          />
+          <Route 
+            path="/followups" 
+            element={
+              authenticated ? 
+                <Followups username={username} onLogout={handleLogout} /> : 
                 <Navigate to="/login" />
             } 
           />

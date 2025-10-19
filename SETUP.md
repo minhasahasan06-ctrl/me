@@ -96,7 +96,11 @@ Your browser should automatically open to http://localhost:3000
 3. You'll be redirected to set up your health profile
 4. Fill in your information (optional but recommended for better personalization)
 5. Click "Save Profile"
-6. Start chatting!
+6. Explore all features:
+   - **Chat**: Ask health questions
+   - **Documents**: Upload and analyze medical files
+   - **Follow-ups**: Schedule regular check-ins
+   - **Profile**: Update your information anytime
 
 ## Verification Checklist
 
@@ -106,6 +110,10 @@ Your browser should automatically open to http://localhost:3000
 - [ ] Can login successfully
 - [ ] Can update profile
 - [ ] Can send messages and receive AI responses
+- [ ] Can upload documents
+- [ ] Can analyze documents with AI
+- [ ] Can create follow-up schedules
+- [ ] Can complete check-ins
 
 ## Troubleshooting
 
@@ -164,13 +172,28 @@ Access:
 3. ✅ Explore the chat history
 4. ✅ Update your profile as needed
 
-## Common First Questions to Try
+## Common First Actions to Try
 
+### Chat Questions
 - "What are some healthy breakfast options for someone with my profile?"
 - "How can I improve my sleep quality?"
 - "What exercises would you recommend for me?"
 - "Can you explain what causes headaches?"
 - "What are good stress management techniques?"
+
+### Documents to Upload
+- Recent lab results or blood test reports
+- Prescription information
+- Medical reports or discharge summaries
+- X-rays or scan images
+- Health tracking charts
+
+### Follow-ups to Create
+- Daily medication reminders
+- Weekly exercise check-ins
+- Biweekly symptom tracking
+- Monthly health measurements
+- Daily water intake goals
 
 ## Need Help?
 

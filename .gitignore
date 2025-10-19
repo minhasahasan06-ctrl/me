@@ -36,6 +36,7 @@ wheels/
 instance/
 .webassets-cache
 flask_session/
+uploads/
 
 # Node
 node_modules/
