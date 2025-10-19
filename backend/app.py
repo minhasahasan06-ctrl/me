@@ -1,17 +1,26 @@
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify, session, send_file
 from flask_cors import CORS
 from flask_session import Session
 import google.generativeai as genai
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import sqlite3
 import uuid
+import base64
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['SESSION_TYPE'] = 'filesystem'
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'txt', 'doc', 'docx'}
+
+# Create upload directory if it doesn't exist
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
 Session(app)
 CORS(app, supports_credentials=True)
 
@@ -54,6 +63,40 @@ def init_db():
                   response TEXT NOT NULL,
                   timestamp TEXT NOT NULL,
                   FOREIGN KEY (user_id) REFERENCES users(id))''')
+    
+    # Uploaded files table
+    c.execute('''CREATE TABLE IF NOT EXISTS uploaded_files
+                 (id TEXT PRIMARY KEY,
+                  user_id TEXT NOT NULL,
+                  filename TEXT NOT NULL,
+                  original_filename TEXT NOT NULL,
+                  file_type TEXT NOT NULL,
+                  file_size INTEGER NOT NULL,
+                  description TEXT,
+                  upload_date TEXT NOT NULL,
+                  FOREIGN KEY (user_id) REFERENCES users(id))''')
+    
+    # Follow-ups table
+    c.execute('''CREATE TABLE IF NOT EXISTS followups
+                 (id TEXT PRIMARY KEY,
+                  user_id TEXT NOT NULL,
+                  title TEXT NOT NULL,
+                  frequency TEXT NOT NULL,
+                  next_date TEXT NOT NULL,
+                  last_completed TEXT,
+                  notes TEXT,
+                  is_active INTEGER DEFAULT 1,
+                  created_at TEXT NOT NULL,
+                  FOREIGN KEY (user_id) REFERENCES users(id))''')
+    
+    # Follow-up history table
+    c.execute('''CREATE TABLE IF NOT EXISTS followup_history
+                 (id TEXT PRIMARY KEY,
+                  followup_id TEXT NOT NULL,
+                  completed_date TEXT NOT NULL,
+                  notes TEXT,
+                  ai_response TEXT,
+                  FOREIGN KEY (followup_id) REFERENCES followups(id))''')
     
     conn.commit()
     conn.close()
@@ -282,6 +325,357 @@ def get_chat_history():
     return jsonify({
         'history': [{'message': h['message'], 'response': h['response'], 'timestamp': h['timestamp']} 
                     for h in history]
+    }), 200
+
+# File upload endpoints
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/api/files/upload', methods=['POST'])
+def upload_file():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+    
+    file = request.files['file']
+    description = request.form.get('description', '')
+    
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'File type not allowed'}), 400
+    
+    try:
+        # Generate unique filename
+        original_filename = secure_filename(file.filename)
+        file_ext = original_filename.rsplit('.', 1)[1].lower()
+        unique_filename = f"{uuid.uuid4()}.{file_ext}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+        
+        # Save file
+        file.save(filepath)
+        file_size = os.path.getsize(filepath)
+        
+        # Save to database
+        conn = get_db()
+        c = conn.cursor()
+        file_id = str(uuid.uuid4())
+        c.execute('''INSERT INTO uploaded_files 
+                     (id, user_id, filename, original_filename, file_type, file_size, description, upload_date)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                  (file_id, session['user_id'], unique_filename, original_filename, 
+                   file_ext, file_size, description, datetime.now().isoformat()))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'message': 'File uploaded successfully',
+            'file_id': file_id,
+            'filename': original_filename
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': f'Upload failed: {str(e)}'}), 500
+
+@app.route('/api/files', methods=['GET'])
+def get_files():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''SELECT id, original_filename, file_type, file_size, description, upload_date 
+                 FROM uploaded_files WHERE user_id = ? ORDER BY upload_date DESC''',
+              (session['user_id'],))
+    files = c.fetchall()
+    conn.close()
+    
+    return jsonify({
+        'files': [{
+            'id': f['id'],
+            'filename': f['original_filename'],
+            'file_type': f['file_type'],
+            'file_size': f['file_size'],
+            'description': f['description'],
+            'upload_date': f['upload_date']
+        } for f in files]
+    }), 200
+
+@app.route('/api/files/<file_id>', methods=['DELETE'])
+def delete_file(file_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT filename FROM uploaded_files WHERE id = ? AND user_id = ?',
+              (file_id, session['user_id']))
+    file_record = c.fetchone()
+    
+    if not file_record:
+        conn.close()
+        return jsonify({'error': 'File not found'}), 404
+    
+    # Delete physical file
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file_record['filename'])
+    if os.path.exists(filepath):
+        os.remove(filepath)
+    
+    # Delete database record
+    c.execute('DELETE FROM uploaded_files WHERE id = ?', (file_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'File deleted successfully'}), 200
+
+@app.route('/api/files/analyze/<file_id>', methods=['POST'])
+def analyze_file(file_id):
+    """Analyze an uploaded file using Gemini Vision API for images or text extraction"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT filename, file_type, original_filename FROM uploaded_files WHERE id = ? AND user_id = ?',
+              (file_id, session['user_id']))
+    file_record = c.fetchone()
+    conn.close()
+    
+    if not file_record:
+        return jsonify({'error': 'File not found'}), 404
+    
+    try:
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file_record['filename'])
+        
+        # For images, use Gemini Vision
+        if file_record['file_type'] in ['png', 'jpg', 'jpeg', 'gif']:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            
+            # Read and encode image
+            with open(filepath, 'rb') as f:
+                image_data = f.read()
+            
+            prompt = """Analyze this medical document or health-related image. 
+            Provide a detailed summary of what you see, including any text, charts, values, or medical information.
+            If this appears to be a medical report or lab result, highlight key findings.
+            Be thorough but clear in your analysis."""
+            
+            response = model.generate_content([prompt, {'mime_type': f'image/{file_record["file_type"]}', 'data': image_data}])
+            analysis = response.text
+            
+        else:
+            # For text files, read and analyze
+            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+            
+            model = genai.GenerativeModel('gemini-pro')
+            prompt = f"""Analyze this medical document content and provide a summary:
+            
+            {content[:5000]}  # Limit to first 5000 characters
+            
+            Provide key findings, important values, and any health-related insights."""
+            
+            response = model.generate_content(prompt)
+            analysis = response.text
+        
+        return jsonify({
+            'filename': file_record['original_filename'],
+            'analysis': analysis
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
+
+# Follow-up management endpoints
+@app.route('/api/followups', methods=['POST'])
+def create_followup():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.json
+    title = data.get('title')
+    frequency = data.get('frequency')  # daily, weekly, biweekly, monthly
+    notes = data.get('notes', '')
+    
+    if not title or not frequency:
+        return jsonify({'error': 'Title and frequency are required'}), 400
+    
+    # Calculate next date based on frequency
+    now = datetime.now()
+    if frequency == 'daily':
+        next_date = now + timedelta(days=1)
+    elif frequency == 'weekly':
+        next_date = now + timedelta(weeks=1)
+    elif frequency == 'biweekly':
+        next_date = now + timedelta(weeks=2)
+    elif frequency == 'monthly':
+        next_date = now + timedelta(days=30)
+    else:
+        return jsonify({'error': 'Invalid frequency'}), 400
+    
+    conn = get_db()
+    c = conn.cursor()
+    followup_id = str(uuid.uuid4())
+    c.execute('''INSERT INTO followups 
+                 (id, user_id, title, frequency, next_date, notes, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)''',
+              (followup_id, session['user_id'], title, frequency, 
+               next_date.isoformat(), notes, now.isoformat()))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        'message': 'Follow-up created successfully',
+        'followup_id': followup_id,
+        'next_date': next_date.isoformat()
+    }), 201
+
+@app.route('/api/followups', methods=['GET'])
+def get_followups():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''SELECT id, title, frequency, next_date, last_completed, notes, is_active
+                 FROM followups WHERE user_id = ? AND is_active = 1 ORDER BY next_date ASC''',
+              (session['user_id'],))
+    followups = c.fetchall()
+    conn.close()
+    
+    return jsonify({
+        'followups': [{
+            'id': f['id'],
+            'title': f['title'],
+            'frequency': f['frequency'],
+            'next_date': f['next_date'],
+            'last_completed': f['last_completed'],
+            'notes': f['notes'],
+            'is_overdue': datetime.fromisoformat(f['next_date']) < datetime.now()
+        } for f in followups]
+    }), 200
+
+@app.route('/api/followups/<followup_id>/complete', methods=['POST'])
+def complete_followup(followup_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.json
+    notes = data.get('notes', '')
+    
+    conn = get_db()
+    c = conn.cursor()
+    
+    # Get followup details
+    c.execute('SELECT frequency FROM followups WHERE id = ? AND user_id = ?',
+              (followup_id, session['user_id']))
+    followup = c.fetchone()
+    
+    if not followup:
+        conn.close()
+        return jsonify({'error': 'Follow-up not found'}), 404
+    
+    now = datetime.now()
+    
+    # Calculate next date
+    frequency = followup['frequency']
+    if frequency == 'daily':
+        next_date = now + timedelta(days=1)
+    elif frequency == 'weekly':
+        next_date = now + timedelta(weeks=1)
+    elif frequency == 'biweekly':
+        next_date = now + timedelta(weeks=2)
+    elif frequency == 'monthly':
+        next_date = now + timedelta(days=30)
+    
+    # Generate AI response for the follow-up
+    try:
+        user_context = get_user_context(session['user_id'])
+        model = genai.GenerativeModel('gemini-pro')
+        
+        prompt = f"""This is a health follow-up check-in.
+        
+{user_context}
+
+Follow-up Type: {frequency} check-in
+User Notes: {notes if notes else 'No specific concerns mentioned'}
+
+Provide a brief, encouraging health update message. If the user mentioned any concerns, address them. 
+Keep it friendly, supportive, and remind them of their health goals."""
+        
+        response = model.generate_content(prompt)
+        ai_response = response.text
+    except:
+        ai_response = "Great job completing your check-in! Keep up the good work with your health journey."
+    
+    # Save to history
+    history_id = str(uuid.uuid4())
+    c.execute('''INSERT INTO followup_history 
+                 (id, followup_id, completed_date, notes, ai_response)
+                 VALUES (?, ?, ?, ?, ?)''',
+              (history_id, followup_id, now.isoformat(), notes, ai_response))
+    
+    # Update followup
+    c.execute('''UPDATE followups 
+                 SET last_completed = ?, next_date = ?
+                 WHERE id = ?''',
+              (now.isoformat(), next_date.isoformat(), followup_id))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        'message': 'Follow-up completed',
+        'next_date': next_date.isoformat(),
+        'ai_response': ai_response
+    }), 200
+
+@app.route('/api/followups/<followup_id>', methods=['DELETE'])
+def delete_followup(followup_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('UPDATE followups SET is_active = 0 WHERE id = ? AND user_id = ?',
+              (followup_id, session['user_id']))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Follow-up deleted successfully'}), 200
+
+@app.route('/api/followups/<followup_id>/history', methods=['GET'])
+def get_followup_history(followup_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    conn = get_db()
+    c = conn.cursor()
+    
+    # Verify user owns this followup
+    c.execute('SELECT id FROM followups WHERE id = ? AND user_id = ?',
+              (followup_id, session['user_id']))
+    if not c.fetchone():
+        conn.close()
+        return jsonify({'error': 'Follow-up not found'}), 404
+    
+    c.execute('''SELECT id, completed_date, notes, ai_response
+                 FROM followup_history WHERE followup_id = ? 
+                 ORDER BY completed_date DESC LIMIT 20''',
+              (followup_id,))
+    history = c.fetchall()
+    conn.close()
+    
+    return jsonify({
+        'history': [{
+            'id': h['id'],
+            'completed_date': h['completed_date'],
+            'notes': h['notes'],
+            'ai_response': h['ai_response']
+        } for h in history]
     }), 200
 
 @app.route('/api/health', methods=['GET'])
