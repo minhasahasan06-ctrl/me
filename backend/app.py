@@ -98,6 +98,29 @@ def init_db():
                   ai_response TEXT,
                   FOREIGN KEY (followup_id) REFERENCES followups(id))''')
     
+    # Wearable devices table
+    c.execute('''CREATE TABLE IF NOT EXISTS wearable_devices
+                 (id TEXT PRIMARY KEY,
+                  user_id TEXT NOT NULL,
+                  device_name TEXT NOT NULL,
+                  device_type TEXT NOT NULL,
+                  connected_at TEXT NOT NULL,
+                  last_sync TEXT,
+                  is_active INTEGER DEFAULT 1,
+                  FOREIGN KEY (user_id) REFERENCES users(id))''')
+    
+    # Health metrics table
+    c.execute('''CREATE TABLE IF NOT EXISTS health_metrics
+                 (id TEXT PRIMARY KEY,
+                  user_id TEXT NOT NULL,
+                  device_id TEXT,
+                  metric_type TEXT NOT NULL,
+                  value REAL NOT NULL,
+                  unit TEXT NOT NULL,
+                  recorded_at TEXT NOT NULL,
+                  FOREIGN KEY (user_id) REFERENCES users(id),
+                  FOREIGN KEY (device_id) REFERENCES wearable_devices(id))''')
+    
     conn.commit()
     conn.close()
 
@@ -229,27 +252,44 @@ def get_user_context(user_id):
     c = conn.cursor()
     c.execute('SELECT * FROM user_profiles WHERE user_id = ?', (user_id,))
     profile = c.fetchone()
+    
+    context = ""
+    
+    if profile:
+        context = "User Profile:\n"
+        if profile['full_name']:
+            context += f"Name: {profile['full_name']}\n"
+        if profile['age']:
+            context += f"Age: {profile['age']}\n"
+        if profile['gender']:
+            context += f"Gender: {profile['gender']}\n"
+        if profile['medical_history']:
+            context += f"Medical History: {profile['medical_history']}\n"
+        if profile['allergies']:
+            context += f"Allergies: {profile['allergies']}\n"
+        if profile['current_medications']:
+            context += f"Current Medications: {profile['current_medications']}\n"
+        if profile['health_goals']:
+            context += f"Health Goals: {profile['health_goals']}\n"
+    
+    # Add wearable data context
+    today = datetime.now().date().isoformat()
+    c.execute('''SELECT metric_type, AVG(value) as avg_value, MIN(value) as min_value, 
+                 MAX(value) as max_value, unit
+                 FROM health_metrics 
+                 WHERE user_id = ? AND date(recorded_at) >= date('now', '-7 days')
+                 GROUP BY metric_type''',
+              (user_id,))
+    metrics = c.fetchall()
+    
+    if metrics:
+        context += "\nRecent Health Metrics (Last 7 Days from Wearable Device):\n"
+        for metric in metrics:
+            context += f"- {metric['metric_type'].replace('_', ' ').title()}: "
+            context += f"Avg {metric['avg_value']:.1f} {metric['unit']}, "
+            context += f"Range {metric['min_value']:.1f}-{metric['max_value']:.1f}\n"
+    
     conn.close()
-    
-    if not profile:
-        return ""
-    
-    context = "User Profile:\n"
-    if profile['full_name']:
-        context += f"Name: {profile['full_name']}\n"
-    if profile['age']:
-        context += f"Age: {profile['age']}\n"
-    if profile['gender']:
-        context += f"Gender: {profile['gender']}\n"
-    if profile['medical_history']:
-        context += f"Medical History: {profile['medical_history']}\n"
-    if profile['allergies']:
-        context += f"Allergies: {profile['allergies']}\n"
-    if profile['current_medications']:
-        context += f"Current Medications: {profile['current_medications']}\n"
-    if profile['health_goals']:
-        context += f"Health Goals: {profile['health_goals']}\n"
-    
     return context
 
 @app.route('/api/chat', methods=['POST'])
@@ -677,6 +717,302 @@ def get_followup_history(followup_id):
             'ai_response': h['ai_response']
         } for h in history]
     }), 200
+
+# Wearable device endpoints
+@app.route('/api/wearables/devices', methods=['GET'])
+def get_wearable_devices():
+    """Get all connected wearable devices for the user"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''SELECT id, device_name, device_type, connected_at, last_sync, is_active
+                 FROM wearable_devices WHERE user_id = ? AND is_active = 1 
+                 ORDER BY connected_at DESC''',
+              (session['user_id'],))
+    devices = c.fetchall()
+    conn.close()
+    
+    return jsonify({
+        'devices': [{
+            'id': d['id'],
+            'device_name': d['device_name'],
+            'device_type': d['device_type'],
+            'connected_at': d['connected_at'],
+            'last_sync': d['last_sync']
+        } for d in devices]
+    }), 200
+
+@app.route('/api/wearables/devices', methods=['POST'])
+def connect_wearable_device():
+    """Connect a new wearable device (simulated for demo)"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.json
+    device_name = data.get('device_name')
+    device_type = data.get('device_type')
+    
+    if not device_name or not device_type:
+        return jsonify({'error': 'Device name and type required'}), 400
+    
+    conn = get_db()
+    c = conn.cursor()
+    device_id = str(uuid.uuid4())
+    now = datetime.now().isoformat()
+    
+    c.execute('''INSERT INTO wearable_devices 
+                 (id, user_id, device_name, device_type, connected_at, last_sync)
+                 VALUES (?, ?, ?, ?, ?, ?)''',
+              (device_id, session['user_id'], device_name, device_type, now, now))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        'message': 'Device connected successfully',
+        'device_id': device_id
+    }), 201
+
+@app.route('/api/wearables/devices/<device_id>', methods=['DELETE'])
+def disconnect_wearable_device(device_id):
+    """Disconnect a wearable device"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('UPDATE wearable_devices SET is_active = 0 WHERE id = ? AND user_id = ?',
+              (device_id, session['user_id']))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Device disconnected successfully'}), 200
+
+@app.route('/api/wearables/sync', methods=['POST'])
+def sync_wearable_data():
+    """Simulate syncing data from wearable device"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.json
+    device_id = data.get('device_id')
+    
+    if not device_id:
+        return jsonify({'error': 'Device ID required'}), 400
+    
+    # Simulate generating realistic health metrics
+    import random
+    now = datetime.now()
+    
+    conn = get_db()
+    c = conn.cursor()
+    
+    # Generate metrics for the past 24 hours
+    metrics_to_add = []
+    
+    # Heart rate (60-100 bpm normal range)
+    for i in range(24):
+        timestamp = (now - timedelta(hours=23-i)).isoformat()
+        heart_rate = random.randint(60, 95)
+        metrics_to_add.append((str(uuid.uuid4()), session['user_id'], device_id, 
+                              'heart_rate', heart_rate, 'bpm', timestamp))
+    
+    # Steps (accumulating throughout the day)
+    total_steps = 0
+    for i in range(24):
+        timestamp = (now - timedelta(hours=23-i)).isoformat()
+        steps_this_hour = random.randint(200, 800) if 6 <= i <= 22 else random.randint(0, 50)
+        total_steps += steps_this_hour
+        metrics_to_add.append((str(uuid.uuid4()), session['user_id'], device_id, 
+                              'steps', total_steps, 'steps', timestamp))
+    
+    # Sleep hours (last night)
+    sleep_hours = round(random.uniform(6.0, 9.0), 1)
+    sleep_timestamp = (now - timedelta(hours=8)).isoformat()
+    metrics_to_add.append((str(uuid.uuid4()), session['user_id'], device_id, 
+                          'sleep', sleep_hours, 'hours', sleep_timestamp))
+    
+    # Calories burned
+    calories = random.randint(1800, 2800)
+    metrics_to_add.append((str(uuid.uuid4()), session['user_id'], device_id, 
+                          'calories', calories, 'kcal', now.isoformat()))
+    
+    # Blood oxygen (normal 95-100%)
+    spo2 = random.randint(95, 100)
+    metrics_to_add.append((str(uuid.uuid4()), session['user_id'], device_id, 
+                          'spo2', spo2, '%', now.isoformat()))
+    
+    # Insert all metrics
+    c.executemany('''INSERT INTO health_metrics 
+                     (id, user_id, device_id, metric_type, value, unit, recorded_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)''', metrics_to_add)
+    
+    # Update last sync time
+    c.execute('UPDATE wearable_devices SET last_sync = ? WHERE id = ?',
+              (now.isoformat(), device_id))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        'message': 'Data synced successfully',
+        'metrics_count': len(metrics_to_add)
+    }), 200
+
+@app.route('/api/wearables/metrics', methods=['GET'])
+def get_health_metrics():
+    """Get health metrics for the user"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Get time range from query params (default: last 7 days)
+    days = request.args.get('days', 7, type=int)
+    metric_type = request.args.get('type', None)
+    
+    since_date = (datetime.now() - timedelta(days=days)).isoformat()
+    
+    conn = get_db()
+    c = conn.cursor()
+    
+    if metric_type:
+        c.execute('''SELECT metric_type, value, unit, recorded_at
+                     FROM health_metrics 
+                     WHERE user_id = ? AND metric_type = ? AND recorded_at >= ?
+                     ORDER BY recorded_at DESC''',
+                  (session['user_id'], metric_type, since_date))
+    else:
+        c.execute('''SELECT metric_type, value, unit, recorded_at
+                     FROM health_metrics 
+                     WHERE user_id = ? AND recorded_at >= ?
+                     ORDER BY recorded_at DESC''',
+                  (session['user_id'], since_date))
+    
+    metrics = c.fetchall()
+    conn.close()
+    
+    # Group metrics by type
+    grouped_metrics = {}
+    for m in metrics:
+        metric_type = m['metric_type']
+        if metric_type not in grouped_metrics:
+            grouped_metrics[metric_type] = []
+        grouped_metrics[metric_type].append({
+            'value': m['value'],
+            'unit': m['unit'],
+            'recorded_at': m['recorded_at']
+        })
+    
+    return jsonify({
+        'metrics': grouped_metrics,
+        'period_days': days
+    }), 200
+
+@app.route('/api/wearables/metrics/summary', methods=['GET'])
+def get_metrics_summary():
+    """Get summary statistics for health metrics"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    conn = get_db()
+    c = conn.cursor()
+    
+    # Get latest metrics for each type from today
+    today = datetime.now().date().isoformat()
+    
+    summary = {}
+    metric_types = ['heart_rate', 'steps', 'sleep', 'calories', 'spo2']
+    
+    for metric_type in metric_types:
+        c.execute('''SELECT value, unit, recorded_at
+                     FROM health_metrics 
+                     WHERE user_id = ? AND metric_type = ? 
+                     AND date(recorded_at) = date(?)
+                     ORDER BY recorded_at DESC LIMIT 1''',
+                  (session['user_id'], metric_type, today))
+        result = c.fetchone()
+        
+        if result:
+            summary[metric_type] = {
+                'value': result['value'],
+                'unit': result['unit'],
+                'recorded_at': result['recorded_at']
+            }
+        
+        # Get average for the metric type over last 7 days
+        c.execute('''SELECT AVG(value) as avg_value
+                     FROM health_metrics 
+                     WHERE user_id = ? AND metric_type = ? 
+                     AND recorded_at >= date('now', '-7 days')''',
+                  (session['user_id'], metric_type))
+        avg_result = c.fetchone()
+        
+        if avg_result and avg_result['avg_value'] is not None:
+            if metric_type not in summary:
+                summary[metric_type] = {}
+            summary[metric_type]['avg_7days'] = round(avg_result['avg_value'], 1)
+    
+    conn.close()
+    
+    return jsonify({'summary': summary}), 200
+
+@app.route('/api/wearables/insights', methods=['GET'])
+def get_health_insights():
+    """Get AI-generated insights based on wearable data"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        # Get recent metrics
+        conn = get_db()
+        c = conn.cursor()
+        
+        # Get last 7 days of data
+        since_date = (datetime.now() - timedelta(days=7)).isoformat()
+        c.execute('''SELECT metric_type, AVG(value) as avg_value, MIN(value) as min_value, 
+                     MAX(value) as max_value, unit
+                     FROM health_metrics 
+                     WHERE user_id = ? AND recorded_at >= ?
+                     GROUP BY metric_type''',
+                  (session['user_id'], since_date))
+        metrics_summary = c.fetchall()
+        conn.close()
+        
+        if not metrics_summary:
+            return jsonify({'insights': 'No health data available yet. Connect a wearable device and sync your data to get personalized insights!'}), 200
+        
+        # Build context for AI
+        user_context = get_user_context(session['user_id'])
+        
+        metrics_text = "Health Metrics Summary (Last 7 Days):\n"
+        for metric in metrics_summary:
+            metrics_text += f"- {metric['metric_type']}: Avg {metric['avg_value']:.1f} {metric['unit']}, "
+            metrics_text += f"Range {metric['min_value']:.1f}-{metric['max_value']:.1f}\n"
+        
+        model = genai.GenerativeModel('gemini-pro')
+        
+        prompt = f"""You are a health assistant analyzing wearable device data.
+
+{user_context}
+
+{metrics_text}
+
+Based on this health data, provide:
+1. Key observations about their health metrics
+2. Positive patterns or achievements
+3. Areas that might need attention
+4. Actionable recommendations for improvement
+5. Encouragement and motivation
+
+Keep it concise, friendly, and actionable. Focus on 3-4 main insights."""
+        
+        response = model.generate_content(prompt)
+        insights = response.text
+        
+        return jsonify({'insights': insights}), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Error generating insights: {str(e)}'}), 500
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
