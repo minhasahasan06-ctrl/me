@@ -1,8 +1,306 @@
 # 🌟 Feature Documentation
 
-## Overview of New Features
+## Overview of Features
 
-This document provides detailed information about the document upload and regular follow-up features.
+This document provides detailed information about wearable device integration, document upload, and regular follow-up features.
+
+---
+
+## ⌚ Wearable Device Integration
+
+### What It Does
+Connect your smartwatches, fitness bands, and other health monitoring devices to track real-time health metrics. Get AI-powered insights based on your health data trends.
+
+### Supported Devices
+- **Smartwatches**: Apple Watch, Samsung Galaxy Watch, Wear OS devices
+- **Fitness Bands**: Fitbit, Xiaomi Mi Band, Garmin bands
+- **Smart Scales**: Connected weight and body composition monitors
+- **Other Devices**: Any health monitoring device with data export
+
+### Tracked Health Metrics
+
+#### Core Metrics
+1. **Heart Rate** ❤️
+   - Real-time BPM monitoring
+   - Average, min, and max values
+   - 7-day trend analysis
+   - Normal range: 60-100 bpm
+
+2. **Steps** 👟
+   - Daily step count tracking
+   - Hourly activity breakdown
+   - Progress towards daily goals
+   - Cumulative daily totals
+
+3. **Sleep** 😴
+   - Total sleep hours
+   - Sleep quality tracking
+   - Historical sleep patterns
+   - Optimal range: 7-9 hours
+
+4. **Calories** 🔥
+   - Total calories burned
+   - Active vs. resting energy
+   - Daily energy expenditure
+   - Personalized daily goals
+
+5. **Blood Oxygen (SpO2)** 🫁
+   - Oxygen saturation levels
+   - Respiratory health indicators
+   - Trend monitoring over time
+   - Normal range: 95-100%
+
+### How to Use
+
+#### 1. Connect Your Device
+1. Navigate to the **Wearables** page from the main navigation
+2. Click "**+ Connect Device**"
+3. Enter device information:
+   - Device name (e.g., "My Apple Watch")
+   - Select device type from dropdown
+4. Click "**Connect Device**" to complete setup
+
+#### 2. Sync Your Data
+**Manual Sync**:
+- Click "**🔄 Sync Now**" on any connected device card
+- System imports last 24 hours of health data
+- Sync completes in 2-3 seconds
+- See updated metrics immediately
+
+**What Gets Synced**:
+- 24 hourly heart rate readings
+- Step counts throughout the day
+- Previous night's sleep data
+- Calories burned
+- Blood oxygen levels
+
+#### 3. View Your Dashboard
+
+**Today's Health Metrics** 📊
+- Current values for all tracked metrics
+- 7-day average comparisons
+- Color-coded metric cards
+- Visual icons for each metric type
+- Units clearly labeled
+
+**Health Trends** 📈
+- Mini bar charts showing 7-day trends
+- Interactive visualizations (hover for details)
+- Quick pattern recognition
+- Color-coded by metric type
+- Recent value summaries
+
+**AI Health Insights** 🤖
+- Personalized analysis of your health data
+- Pattern recognition across all metrics
+- Achievement celebrations
+- Areas for improvement
+- Actionable health recommendations
+- Based on your profile + wearable data
+
+#### 4. Chat Integration
+The AI chatbot automatically uses your wearable data:
+
+**Example Conversations**:
+```
+You: "How has my sleep been this week?"
+AI: "Based on your wearable data, you've averaged 7.2 hours 
+     of sleep per night this week, which is within the healthy 
+     range of 7-9 hours..."
+
+You: "Should I be concerned about my heart rate?"
+AI: "Your average heart rate this week was 72 bpm, which is 
+     perfectly normal. Your readings range from 65-85 bpm..."
+```
+
+### Dashboard Features in Detail
+
+#### Real-Time Metrics Dashboard
+- **Live Updates**: Instant refresh after syncing
+- **Visual Indicators**: Distinctive color for each metric
+- **Comparative Analysis**: Today vs. 7-day average
+- **Unit Display**: Clear labeling (bpm, steps, hours, kcal, %)
+- **Responsive Grid**: Adapts to screen size
+
+#### Health Trends Visualization
+- **Mini Charts**: Compact 7-day trend bars
+- **Interactive**: Hover to see exact values
+- **Recent Focus**: Last 7 days of data
+- **Color Coding**:
+  - ❤️ Heart Rate: Red (#ff6b6b)
+  - 👟 Steps: Teal (#4ecdc4)
+  - 😴 Sleep: Purple (#9b59b6)
+  - 🔥 Calories: Orange (#f39c12)
+  - 🫁 SpO2: Blue (#3498db)
+
+#### AI-Powered Insights Engine
+The system analyzes your data and provides:
+
+1. **Key Observations**
+   - Notable patterns in metrics
+   - Deviations from normal ranges
+   - Consistency in healthy behaviors
+
+2. **Achievement Recognition**
+   - Milestone celebrations
+   - Progress acknowledgment
+   - Motivation boosters
+
+3. **Areas for Improvement**
+   - Evidence-based suggestions
+   - Prioritized action items
+   - Gentle, non-judgmental feedback
+
+4. **Personalized Recommendations**
+   - Based on your profile + wearable data
+   - Considers health goals
+   - Accounts for medical history
+   - References current medications
+
+### Use Cases
+
+#### Daily Health Monitoring
+```
+Track: Heart rate, steps, sleep, calories
+Frequency: Daily sync
+Goal: Maintain consistent healthy patterns
+```
+
+#### Fitness Progress Tracking
+```
+Track: Steps, calories, heart rate during exercise
+Frequency: Post-workout sync
+Goal: Optimize workout intensity and recovery
+```
+
+#### Sleep Quality Improvement
+```
+Track: Sleep hours, sleep patterns
+Frequency: Morning sync
+Goal: Achieve 7-9 hours consistently
+```
+
+#### Cardiovascular Health
+```
+Track: Heart rate, blood oxygen, exercise
+Frequency: Multiple times daily
+Goal: Monitor heart health and fitness level
+```
+
+### Technical Details
+
+**Current Implementation (Demo)**:
+- Simulates realistic health data
+- Generates 24 hours of metrics per sync
+- Provides pattern-based insights
+- Demonstrates full functionality
+
+**Production Integration Points**:
+```python
+# Apple HealthKit
+sync_apple_health(device_id, auth_token)
+
+# Google Fit
+sync_google_fit(device_id, credentials)
+
+# Fitbit API
+sync_fitbit(device_id, access_token)
+
+# Garmin Connect
+sync_garmin(device_id, oauth_token)
+```
+
+**Data Storage**:
+- SQLite database (health_metrics table)
+- Indexed for fast queries
+- User-specific data isolation
+- Historical data preservation
+
+### Security & Privacy
+
+#### Data Protection
+- ✅ All data encrypted at rest
+- ✅ Session-based authentication
+- ✅ No third-party sharing
+- ✅ User-controlled deletion
+- ✅ Secure API endpoints
+
+#### User Control
+- Connect/disconnect devices anytime
+- Delete historical data
+- Control sync timing
+- Privacy-focused design
+
+### Benefits
+
+1. **Holistic Health View**
+   - All metrics in one place
+   - Easy trend spotting
+   - Comprehensive insights
+
+2. **AI-Powered Guidance**
+   - Personalized recommendations
+   - Pattern recognition
+   - Proactive health tips
+
+3. **Motivation & Accountability**
+   - Visual progress tracking
+   - Achievement recognition
+   - Goal monitoring
+
+4. **Integration with Chat**
+   - Context-aware responses
+   - Data-driven advice
+   - Intelligent health assistant
+
+### Tips for Best Results
+
+1. **Sync Regularly**: Daily syncs provide best insights
+2. **Wear Consistently**: Continuous monitoring improves accuracy
+3. **Set Goals**: Use your health profile to track progress
+4. **Review Insights**: Check AI recommendations weekly
+5. **Ask Questions**: Use chat to understand your metrics
+6. **Track Trends**: Look for patterns over weeks, not days
+
+### Troubleshooting
+
+#### Device Won't Connect
+- Verify device name is entered correctly
+- Check device type selection
+- Try disconnecting and reconnecting
+- Ensure you're logged in
+
+#### Data Not Syncing
+- Click "Sync Now" button manually
+- Check internet connection
+- Verify device still connected
+- Refresh the page
+
+#### Metrics Look Unusual
+- Demo mode uses simulated data
+- Real devices show actual readings
+- Trends build over time
+- Initial data may vary
+
+#### Insights Not Generating
+- Ensure you have synced data
+- Wait for at least one full sync
+- Refresh the insights section
+- Check that Google API key is configured
+
+### Future Enhancements
+
+Planned improvements:
+- 🔄 Automatic background syncing
+- 📱 Real device API integrations (Apple Health, Google Fit, Fitbit)
+- 📊 Advanced analytics and detailed charts
+- 🎯 Custom goal setting and tracking
+- 📈 Monthly and yearly health reports
+- 🏆 Achievement and streak system
+- 👥 Optional data sharing with healthcare providers
+- ⚡ Real-time alerts for abnormal readings
+- 📅 Integration with follow-ups feature
+- 🔔 Push notifications for health reminders
 
 ---
 
@@ -242,33 +540,63 @@ you've been working on. See you tomorrow for your next check-in!"
 
 ### How They Work Together
 
-#### Profile → Chat → Documents → Follow-ups
+#### Profile → Wearables → Chat → Documents → Follow-ups
 
 1. **Profile** provides personalization context
-2. **Chat** lets you ask questions about your documents
-3. **Documents** store your medical information
-4. **Follow-ups** help you act on recommendations
+2. **Wearables** track your real-time health metrics
+3. **Chat** uses wearable data for personalized advice
+4. **Documents** store your medical information
+5. **Follow-ups** help you act on recommendations
 
 #### Example Workflow
 
 ```
-1. Upload lab results (Documents)
-2. Ask AI about results in Chat
-3. Set up follow-up for medication (Follow-ups)
-4. Complete daily check-ins
-5. Upload new results after a month
-6. Compare and track improvement
+1. Connect wearable device (Wearables)
+2. Sync daily health metrics
+3. Update health profile with goals (Profile)
+4. Chat with AI about metrics and trends
+5. Upload lab results (Documents)
+6. AI analyzes both wearable data and documents
+7. Set up follow-up for medication (Follow-ups)
+8. Track adherence and progress
+9. Review AI insights combining all data sources
+10. Adjust health plan based on comprehensive view
 ```
 
 ### Contextual AI Responses
 
-The AI considers:
-- Your health profile (age, conditions, medications)
-- Uploaded documents (recent lab results, prescriptions)
-- Follow-up patterns (consistency, concerns mentioned)
-- Chat history (previous questions and advice)
+The AI considers ALL your data:
+- **Health Profile**: Age, gender, conditions, medications, goals
+- **Wearable Data**: Heart rate, steps, sleep, calories, SpO2
+- **Health Trends**: 7-day patterns and changes
+- **Documents**: Lab results, prescriptions, medical reports
+- **Follow-up Patterns**: Consistency, adherence, concerns
+- **Chat History**: Previous questions and advice given
 
-This creates a comprehensive, personalized health management experience.
+#### Example Integration Scenario
+
+**User Profile**: 45-year-old with hypertension, takes medication daily
+
+**Wearable Data**: Average heart rate 78 bpm, 8,500 steps/day, 7.5 hours sleep
+
+**Document**: Recent blood pressure readings uploaded
+
+**Follow-up**: Daily medication reminder check-ins
+
+**Chat Question**: "How am I doing with my blood pressure management?"
+
+**AI Response**: 
+```
+"You're doing excellently! Your wearable data shows a healthy 
+average heart rate of 78 bpm this week, and your recent blood 
+pressure readings from your uploaded document indicate good 
+control. Your daily step count of 8,500 and 7.5 hours of sleep 
+are both within healthy ranges and supporting your cardiovascular 
+health. You've also been consistent with your daily medication 
+check-ins. Keep up this great routine!"
+```
+
+This creates a truly comprehensive, personalized health management experience with data from multiple sources working together.
 
 ---
 

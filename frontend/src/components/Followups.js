@@ -115,6 +115,9 @@ function Followups({ username, onLogout }) {
           <button className="btn btn-secondary" onClick={() => navigate('/chat')}>
             Chat
           </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/wearables')}>
+            ⌚ Wearables
+          </button>
           <button className="btn btn-secondary" onClick={() => navigate('/documents')}>
             Documents
           </button>

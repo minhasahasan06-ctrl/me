@@ -1,14 +1,17 @@
-# 🏥 Personalized AI Health Chatbot with Google MedLM
+# 🏥 AI Personalized Health Chatbot with Wearable Device Integration
 
-A sophisticated health chatbot application powered by Google's Gemini API (MedLM) that provides personalized health advice based on user profiles.
+A sophisticated health chatbot application powered by Google's Gemini API that provides personalized health advice based on user profiles and wearable device data. Track your health metrics in real-time, sync data from smartwatches and fitness trackers, and get AI-powered insights tailored to your health journey.
 
 ## ✨ Features
 
 - **🤖 AI-Powered Health Assistant**: Leverages Google's Gemini API for intelligent health conversations
-- **👤 Personalized Responses**: Uses user profile data (age, medical history, allergies, medications) to provide tailored advice
+- **⌚ Wearable Device Integration**: Connect smartwatches, fitness bands, and other wearables to track health metrics
+- **📊 Real-Time Health Metrics**: Monitor heart rate, steps, sleep, calories, blood oxygen (SpO2) and more
+- **📈 Health Trends Visualization**: Beautiful charts and graphs showing your health data over time
+- **🤖 AI Health Insights**: Get personalized AI-generated insights based on your wearable data and trends
+- **👤 Personalized Responses**: Uses user profile data and wearable metrics to provide tailored health advice
 - **🔐 Secure Authentication**: User registration and login with session management
 - **💬 Chat History**: Persistent conversation history saved to database
-- **📊 Health Profile Management**: Comprehensive user profile system for personalization
 - **📁 Document Upload & Analysis**: Upload medical documents (PDFs, images, reports) and get AI-powered analysis using Gemini Vision
 - **⏰ Regular Follow-ups**: Schedule and track regular health check-ins (daily, weekly, biweekly, monthly) with AI-generated feedback
 - **🎨 Modern UI**: Beautiful, responsive React interface with gradient design
@@ -130,20 +133,38 @@ docker-compose up --build
   - Health goals
 - This information personalizes the AI's responses
 
-### 3. Chat with the AI
+### 3. Connect Wearable Devices
+- Go to the Wearables page
+- Click "Connect Device" to add your smartwatch or fitness tracker
+- Supported device types:
+  - Smartwatches (Apple Watch, Samsung Galaxy Watch, etc.)
+  - Fitness Bands (Fitbit, Mi Band, etc.)
+  - Smart Scales
+  - Other health monitoring devices
+- Click "Sync Now" to import health data
+- View real-time metrics dashboard with:
+  - Heart rate monitoring
+  - Step tracking
+  - Sleep analysis
+  - Calorie burn tracking
+  - Blood oxygen levels (SpO2)
+- Get AI-generated insights based on your health trends
+
+### 4. Chat with the AI
 - Ask health-related questions
-- Get personalized advice based on your profile
+- Get personalized advice based on your profile AND wearable data
+- AI automatically considers your recent health metrics when providing advice
 - View chat history
 - All conversations are saved
 
-### 4. Upload Medical Documents
+### 5. Upload Medical Documents
 - Navigate to the Documents page
 - Upload lab results, prescriptions, medical reports
 - Supported formats: PDF, PNG, JPG, TXT, DOC, DOCX
 - Click "Analyze with AI" to get instant insights using Gemini Vision
 - AI can extract text, interpret charts, and highlight key findings
 
-### 5. Set Up Regular Follow-ups
+### 6. Set Up Regular Follow-ups
 - Go to the Follow-ups page
 - Create check-ins for:
   - Medication reminders
@@ -190,6 +211,15 @@ docker-compose up --build
 - `POST /api/followups/<id>/complete` - Mark follow-up as complete
 - `DELETE /api/followups/<id>` - Delete a follow-up
 - `GET /api/followups/<id>/history` - Get completion history
+
+### Wearable Devices
+- `GET /api/wearables/devices` - Get all connected wearable devices
+- `POST /api/wearables/devices` - Connect a new wearable device
+- `DELETE /api/wearables/devices/<device_id>` - Disconnect a wearable device
+- `POST /api/wearables/sync` - Sync data from wearable device
+- `GET /api/wearables/metrics` - Get health metrics (supports query params: days, type)
+- `GET /api/wearables/metrics/summary` - Get summary statistics for health metrics
+- `GET /api/wearables/insights` - Get AI-generated insights based on wearable data
 
 ### Health Check
 - `GET /api/health` - Service health check
@@ -247,6 +277,24 @@ docker-compose up --build
 - completed_date
 - notes
 - ai_response
+
+### Wearable Devices Table
+- id (Primary Key)
+- user_id (Foreign Key)
+- device_name
+- device_type
+- connected_at
+- last_sync
+- is_active
+
+### Health Metrics Table
+- id (Primary Key)
+- user_id (Foreign Key)
+- device_id (Foreign Key)
+- metric_type (heart_rate, steps, sleep, calories, spo2)
+- value
+- unit
+- recorded_at
 
 ## 🎨 UI Features
 
