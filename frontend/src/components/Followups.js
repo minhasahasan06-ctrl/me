@@ -118,6 +118,15 @@ function Followups({ username, onLogout }) {
           <button className="btn btn-secondary" onClick={() => navigate('/documents')}>
             Documents
           </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/followups')}>
+            Follow-ups
+          </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/wearables')}>
+            Wearables
+          </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/analytics')}>
+            Analytics
+          </button>
           <button className="btn btn-secondary" onClick={() => navigate('/profile')}>
             Profile
           </button>
