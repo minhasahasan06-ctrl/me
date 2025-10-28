@@ -11,6 +11,10 @@ A sophisticated health chatbot application powered by Google's Gemini API (MedLM
 - **📊 Health Profile Management**: Comprehensive user profile system for personalization
 - **📁 Document Upload & Analysis**: Upload medical documents (PDFs, images, reports) and get AI-powered analysis using Gemini Vision
 - **⏰ Regular Follow-ups**: Schedule and track regular health check-ins (daily, weekly, biweekly, monthly) with AI-generated feedback
+- **⌚ Wearable Device Integration**: Connect and sync data from fitness trackers, smartwatches, and health monitors
+- **📈 Health Analytics Dashboard**: Comprehensive analytics and insights from wearable device data
+- **🎯 Health Goals Tracking**: Set and monitor health goals with progress visualization
+- **🔄 Real-time Data Sync**: Simulate wearable device data synchronization for testing
 - **🎨 Modern UI**: Beautiful, responsive React interface with gradient design
 - **📱 Responsive Design**: Works seamlessly on desktop and mobile devices
 
@@ -154,6 +158,20 @@ docker-compose up --build
 - Complete check-ins and receive AI-generated encouragement and advice
 - Track your consistency over time
 
+### 6. Connect Wearable Devices
+- Navigate to the Wearables page
+- Add your fitness trackers, smartwatches, or health monitors
+- Supported device types: Fitness Trackers, Smartwatches, Heart Rate Monitors, Sleep Trackers, Smart Scales
+- Sync data to automatically track health metrics
+- View real-time health data and trends
+
+### 7. Monitor Health Analytics
+- Access the Analytics dashboard for comprehensive health insights
+- View trends and patterns in your health data
+- Track progress toward health goals
+- Analyze daily, weekly, and monthly health metrics
+- Get AI-powered insights based on your wearable data
+
 ## 🔒 Security Features
 
 - Password hashing with werkzeug
@@ -190,6 +208,18 @@ docker-compose up --build
 - `POST /api/followups/<id>/complete` - Mark follow-up as complete
 - `DELETE /api/followups/<id>` - Delete a follow-up
 - `GET /api/followups/<id>/history` - Get completion history
+
+### Wearable Devices
+- `POST /api/wearables/devices` - Add new wearable device
+- `GET /api/wearables/devices` - Get all user devices
+- `POST /api/wearables/metrics` - Record health metric
+- `GET /api/wearables/metrics` - Get health metrics (with filtering)
+- `POST /api/wearables/sync` - Sync device data
+- `GET /api/wearables/analytics` - Get health analytics summary
+
+### Health Goals
+- `POST /api/wearables/goals` - Create health goal
+- `GET /api/wearables/goals` - Get all active goals
 
 ### Health Check
 - `GET /api/health` - Service health check
@@ -247,6 +277,37 @@ docker-compose up --build
 - completed_date
 - notes
 - ai_response
+
+### Wearable Devices Table
+- id (Primary Key)
+- user_id (Foreign Key)
+- device_name
+- device_type
+- device_model
+- is_active
+- last_sync
+- created_at
+
+### Health Metrics Table
+- id (Primary Key)
+- user_id (Foreign Key)
+- device_id (Foreign Key)
+- metric_type
+- value
+- unit
+- recorded_at
+- metadata
+
+### Health Goals Table
+- id (Primary Key)
+- user_id (Foreign Key)
+- goal_type
+- target_value
+- current_value
+- unit
+- target_date
+- is_active
+- created_at
 
 ## 🎨 UI Features
 
